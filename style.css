@@ -17,11 +17,41 @@ body {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    flex-wrap: wrap; /* 반응형을 위해 추가 */
 }
 
 .header h1 {
     margin: 0;
     font-size: 1.8rem;
+}
+
+.user-auth-section {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* 버튼 및 텍스트 간 간격 */
+    margin-left: auto; /* 오른쪽 정렬 */
+    margin-right: 15px; /* 게시물 작성 버튼과의 간격 */
+}
+
+.logged-in-user {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.auth-button {
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+.auth-button:hover {
+    background-color: #004085;
 }
 
 .create-button {
@@ -237,11 +267,13 @@ body {
     text-decoration: none;
 }
 
-.post-form .form-group {
+.post-form .form-group,
+.auth-form .form-group { /* 인증 폼에도 적용 */
     margin-bottom: 18px;
 }
 
-.post-form label {
+.post-form label,
+.auth-form label { /* 인증 폼에도 적용 */
     display: block;
     margin-bottom: 8px;
     font-weight: bold;
@@ -249,7 +281,9 @@ body {
 }
 
 .post-form input[type="text"],
-.post-form textarea {
+.post-form textarea,
+.auth-form input[type="text"], /* 인증 폼에도 적용 */
+.auth-form input[type="password"] { /* 인증 폼에도 적용 */
     width: calc(100% - 20px);
     padding: 10px;
     border: 1px solid #ccc;
@@ -265,7 +299,8 @@ body {
 }
 
 .post-form input[type="text"]:focus,
-.post-form textarea:focus {
+.post-form textarea:focus,
+.auth-form input:focus { /* 인증 폼에도 적용 */
     border-color: #007bff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     outline: none;
@@ -316,6 +351,7 @@ body {
     align-items: center;
     font-size: 0.8rem;
     cursor: pointer;
+    font-weight: bold;
 }
 
 
@@ -334,4 +370,10 @@ body {
 
 .submit-button:hover {
     background-color: #0056b3;
+}
+
+/* 게시물 작성 버튼 비활성화 시 */
+button#createPostButton:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
 }

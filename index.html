@@ -9,6 +9,12 @@
 <body>
     <header class="header">
         <h1>나만의 순수 JS 커뮤니티</h1>
+        <div class="user-auth-section">
+            <span id="loggedInUser" class="logged-in-user" style="display: none;">환영합니다, <strong id="usernameDisplay"></strong>님!</span>
+            <button id="registerButton" class="auth-button">회원가입</button>
+            <button id="loginButton" class="auth-button">로그인</button>
+            <button id="logoutButton" class="auth-button" style="display: none;">로그아웃</button>
+        </div>
         <button id="createPostButton" class="create-button">새 게시물 작성</button>
     </header>
 
@@ -28,9 +34,14 @@
             <div id="detailContent" class="detail-content"></div>
             <div id="detailMedia" class="detail-media">
                 </div>
-            <button id="deletePostButton" class="delete-button">게시물 삭제</button>
+            <button id="deletePostButton" class="delete-button" style="display: none;">게시물 삭제</button>
         </section>
     </main>
+    <section id="boardHeader">
+        <h2>자유 게시판</h2>
+        <button id="createPostButton" disabled>+ 새 게시물 작성</button>
+        <span id="loginRequiredMessage" style="color: red; margin-left: 10px; display: none;">로그인 후 게시글 작성이 가능합니다.</span>
+    </section>
 
     <div id="postModal" class="modal">
         <div class="modal-content">
@@ -43,8 +54,7 @@
                 </div>
                 <div class="form-group">
                     <label for="postAuthor">작성자:</label>
-                    <input type="text" id="postAuthor" required>
-                </div>
+                    <input type="text" id="postAuthor" readonly> </div>
                 <div class="form-group">
                     <label for="postContent">내용:</label>
                     <textarea id="postContent" rows="10" required></textarea>
@@ -56,6 +66,42 @@
                         </div>
                 </div>
                 <button type="submit" class="submit-button">게시물 작성</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>회원가입</h2>
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="regUsername">아이디:</label>
+                    <input type="text" id="regUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">비밀번호:</label>
+                    <input type="password" id="regPassword" required>
+                </div>
+                <button type="submit" class="submit-button">회원가입</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>로그인</h2>
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginUsername">아이디:</label>
+                    <input type="text" id="loginUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">비밀번호:</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="submit-button">로그인</button>
             </form>
         </div>
     </div>

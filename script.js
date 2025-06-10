@@ -1,12 +1,12 @@
 // script.js
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- UI 요소 선택 ---
     const createPostButton = document.getElementById('createPostButton');
     const postModal = document.getElementById('postModal');
-    const closeModalButton = postModal.querySelector('.close-button');
     const postForm = document.getElementById('postForm');
     const postTitleInput = document.getElementById('postTitle');
-    const postAuthorInput = document.getElementById('postAuthor');
+    const postAuthorInput = document.getElementById('postAuthor'); // 작성자 입력 필드
     const postContentInput = document.getElementById('postContent');
     const postFilesInput = document.getElementById('postFiles');
     const filePreviewsContainer = document.getElementById('filePreviews');
@@ -24,27 +24,196 @@ document.addEventListener('DOMContentLoaded', () => {
     const backToListButton = document.getElementById('backToListButton');
     const deletePostButton = document.getElementById('deletePostButton');
 
+    // --- 회원가입/로그인 관련 UI 요소 ---
+    const registerButton = document.getElementById('registerButton');
+    const loginButton = document.getElementById('loginButton');
+    const logoutButton = document.getElementById('logoutButton');
+    const loggedInUserSpan = document.getElementById('loggedInUser');
+    const usernameDisplay = document.getElementById('usernameDisplay');
+
+    const registerModal = document.getElementById('registerModal');
+    const loginModal = document.getElementById('loginModal');
+
+    const registerForm = document.getElementById('registerForm');
+    const regUsernameInput = document.getElementById('regUsername');
+    const regPasswordInput = document.getElementById('regPassword');
+
+    const loginForm = document.getElementById('loginForm');
+    const loginUsernameInput = document.getElementById('loginUsername');
+    const loginPasswordInput = document.getElementById('loginPassword');
+
+    // 새로 추가한 UI 요소 선택
+    const loginRequiredMessage = document.getElementById('loginRequiredMessage'); 
+
+    // --- 데이터 저장 변수 ---
     let currentPosts = []; // 모든 게시물을 저장할 배열
+    let users = [];       // 모든 사용자를 저장할 배열
+    let loggedInUser = null; // 현재 로그인된 사용자 정보 (null 또는 { username: '...', id: ... })
+
     let selectedFiles = []; // 폼에서 선택된 파일들을 저장할 배열
 
+    // --- 헬퍼 함수: 모달 열고 닫기 ---
+    function openModal(modalElement) {
+        modalElement.classList.add('active');
+    }
+
+    function closeModal(modalElement) {
+        modalElement.classList.remove('active');
+        // 모달 닫을 때 폼 초기화
+        const form = modalElement.querySelector('form');
+        if (form) form.reset();
+        // 게시물 작성 모달일 경우 파일 미리보기 초기화
+        if (modalElement.id === 'postModal') {
+            selectedFiles.forEach(file => {
+                if (file.objectURL) URL.revokeObjectURL(file.objectURL);
+            });
+            selectedFiles = [];
+            filePreviewsContainer.innerHTML = '';
+        }
+    }
+
+    // 모든 닫기 버튼에 이벤트 리스너 추가
+    document.querySelectorAll('.close-button').forEach(button => {
+        button.addEventListener('click', (event) => {
+            closeModal(event.target.closest('.modal'));
+        });
+    });
+
+    // 모달 외부 클릭 시 닫기
+    window.addEventListener('click', (event) => {
+        if (event.target === postModal) closeModal(postModal);
+        if (event.target === registerModal) closeModal(registerModal);
+        if (event.target === loginModal) closeModal(loginModal);
+    });
+
     // --- 데이터 로드 및 초기화 ---
-    function loadPosts() {
+    function loadData() {
         const storedPosts = localStorage.getItem('posts');
         if (storedPosts) {
             currentPosts = JSON.parse(storedPosts);
-            // 날짜 문자열을 Date 객체로 변환 (필요시)
             currentPosts.forEach(post => {
                 post.created_at = new Date(post.created_at);
             });
-            // 최신순 정렬
             currentPosts.sort((a, b) => b.created_at - a.created_at);
         }
+
+        const storedUsers = localStorage.getItem('users');
+        if (storedUsers) {
+            users = JSON.parse(storedUsers);
+        }
+
+        const storedLoggedInUser = localStorage.getItem('loggedInUser');
+        if (storedLoggedInUser) {
+            loggedInUser = JSON.parse(storedLoggedInUser);
+        }
+
+        updateUIBasedOnLoginStatus(); // 로그인 상태에 따라 UI 업데이트
         renderPostList(); // 게시물 목록 렌더링
     }
+    
+    // --- UI 업데이트 (로그인 상태에 따라) ---
+    function updateUIBasedOnLoginStatus() {
+        if (loggedInUser) {
+            loggedInUserSpan.style.display = 'inline';
+            usernameDisplay.textContent = loggedInUser.username;
+            registerButton.style.display = 'none';
+            loginButton.style.display = 'none';
+            logoutButton.style.display = 'inline';
+            createPostButton.disabled = false; // 로그인하면 게시물 작성 가능
+            postAuthorInput.value = loggedInUser.username; // 작성자 자동 채움
+            postAuthorInput.readOnly = true; // 읽기 전용으로 설정
+            if (loginRequiredMessage) { // 요소가 존재하는지 확인 후 display 속성 변경
+                loginRequiredMessage.style.display = 'none'; // 로그인하면 안내 문구 숨김
+            }
+        } else {
+            loggedInUserSpan.style.display = 'none';
+            registerButton.style.display = 'inline';
+            loginButton.style.display = 'inline';
+            logoutButton.style.display = 'none';
+            createPostButton.disabled = true; // 로그아웃 상태면 게시물 작성 비활성화
+            postAuthorInput.value = ''; // 작성자 초기화
+            postAuthorInput.readOnly = false; // 읽기 전용 해제
+            if (loginRequiredMessage) { // 요소가 존재하는지 확인 후 display 속성 변경
+                loginRequiredMessage.style.display = 'inline'; // 로그아웃하면 안내 문구 표시
+            }
+        }
+        // 게시물 상세 페이지에서 삭제 버튼 표시 여부 결정
+        if (postDetailSection.classList.contains('active')) {
+            const currentPostId = parseInt(deletePostButton.dataset.id);
+            const currentPost = currentPosts.find(p => p.id === currentPostId);
+            if (loggedInUser && currentPost && currentPost.author_name === loggedInUser.username) {
+                deletePostButton.style.display = 'inline'; // 본인 게시물만 삭제 가능
+            } else {
+                deletePostButton.style.display = 'none';
+            }
+        }
+    }
+
+    // --- 회원가입 기능 ---
+    registerButton.addEventListener('click', () => openModal(registerModal));
+
+    registerForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const username = regUsernameInput.value.trim();
+        const password = regPasswordInput.value.trim();
+
+        if (username.length < 4 || password.length < 4) {
+            alert('아이디와 비밀번호는 4자 이상이어야 합니다.');
+            return;
+        }
+
+        if (users.some(user => user.username === username)) {
+            alert('이미 존재하는 아이디입니다.');
+            return;
+        }
+
+        const newUserId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+        users.push({ id: newUserId, username: username, password: password }); // 실제로는 비밀번호 해싱 필요
+        localStorage.setItem('users', JSON.stringify(users));
+        alert('회원가입이 완료되었습니다! 로그인 해주세요.');
+        closeModal(registerModal);
+        openModal(loginModal); // 회원가입 후 로그인 모달 자동 열기
+    });
+
+    // --- 로그인 기능 ---
+    loginButton.addEventListener('click', () => openModal(loginModal));
+
+    loginForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const username = loginUsernameInput.value.trim();
+        const password = loginPasswordInput.value.trim();
+
+        const user = users.find(u => u.username === username && u.password === password); // 실제로는 해싱된 비밀번호 비교
+        if (user) {
+            loggedInUser = { id: user.id, username: user.username };
+            localStorage.setItem('loggedInUser', JSON.stringify(loggedInUser));
+            alert(`로그인 성공! ${username}님 환영합니다.`);
+            closeModal(loginModal);
+            updateUIBasedOnLoginStatus();
+        } else {
+            alert('아이디 또는 비밀번호가 올바르지 않습니다.');
+        }
+    });
+
+    // --- 로그아웃 기능 ---
+    logoutButton.addEventListener('click', () => {
+        loggedInUser = null;
+        localStorage.removeItem('loggedInUser'); // localStorage에서 로그인 정보 제거
+        alert('로그아웃 되었습니다.');
+        updateUIBasedOnLoginStatus();
+        // 로그아웃 시 게시물 작성 모달이 열려있다면 닫기
+        if (postModal.classList.contains('active')) {
+            closeModal(postModal);
+        }
+        // 상세 페이지에서 삭제 버튼 숨김
+        if (postDetailSection.classList.contains('active')) {
+            deletePostButton.style.display = 'none';
+        }
+    });
 
     // --- 게시물 목록 렌더링 ---
     function renderPostList() {
-        postsContainer.innerHTML = ''; // 기존 목록 초기화
+        postsContainer.innerHTML = '';
         if (currentPosts.length === 0) {
             postsContainer.innerHTML = '<p class="no-posts-message">아직 게시물이 없습니다. 새 게시물을 작성해 보세요!</p>';
             return;
@@ -53,13 +222,12 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPosts.forEach(post => {
             const listItem = document.createElement('li');
             listItem.classList.add('post-item');
-            listItem.dataset.id = post.id; // 게시물 ID 저장
+            listItem.dataset.id = post.id;
 
             let thumbnailHtml = '';
-            // 첫 번째 이미지 또는 GIF 파일을 썸네일로 사용
             if (post.media_files && post.media_files.length > 0) {
                 const firstMedia = post.media_files.find(
-                    media => media.type.startsWith('image/') || media.type.startsWith('video/') // 비디오도 썸네일로 고려
+                    media => media.type.startsWith('image/') || media.type.startsWith('video/')
                 );
                 if (firstMedia) {
                     if (firstMedia.type.startsWith('image/') || firstMedia.type.startsWith('image/gif')) {
@@ -70,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-
+            // --- 수정된 부분: 템플릿 리터럴 문법 오류 수정 ---
             listItem.innerHTML = `
                 <h3>${post.title}</h3>
                 <p class="meta">작성자: <strong>${post.author_name}</strong> | 조회수: ${post.views} | 작성일: ${new Date(post.created_at).toLocaleString()}</p>
@@ -78,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             postsContainer.appendChild(listItem);
 
-            // 클릭 이벤트 리스너 추가
             listItem.addEventListener('click', () => showPostDetail(post.id));
         });
     }
@@ -91,17 +258,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 조회수 증가 (임시 로직)
+        // 조회수 증가
         post.views++;
-        localStorage.setItem('posts', JSON.stringify(currentPosts)); // localStorage 업데이트
+        localStorage.setItem('posts', JSON.stringify(currentPosts));
 
         detailTitle.textContent = post.title;
         detailAuthor.textContent = post.author_name;
         detailViews.textContent = post.views;
         detailDate.textContent = new Date(post.created_at).toLocaleString();
-        detailContent.innerHTML = `<p>${post.content}</p>`; // p 태그로 감싸서 내용 표시
+        detailContent.innerHTML = `<p>${post.content}</p>`;
 
-        detailMedia.innerHTML = ''; // 기존 미디어 초기화
+        detailMedia.innerHTML = '';
         if (post.media_files && post.media_files.length > 0) {
             post.media_files.forEach(media => {
                 const mediaItem = document.createElement('div');
@@ -109,6 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (media.type.startsWith('image/') || media.type.startsWith('image/gif')) {
                     mediaItem.innerHTML = `<img src="${media.url}" alt="첨부 이미지">`;
                 } else if (media.type.startsWith('video/')) {
+                    // --- 수정된 부분: 템플릿 리터럴 문법 오류 수정 ---
                     mediaItem.innerHTML = `<video controls><source src="${media.url}" type="${media.type}"></video>`;
                 } else {
                     mediaItem.innerHTML = `<p>지원하지 않는 파일: ${media.name}</p>`;
@@ -117,44 +285,38 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        deletePostButton.dataset.id = post.id; // 삭제 버튼에 게시물 ID 저장
+        deletePostButton.dataset.id = post.id;
+        // 로그인된 사용자만 본인 게시물을 삭제할 수 있도록 버튼 표시 여부 결정
+        if (loggedInUser && post.author_name === loggedInUser.username) {
+            deletePostButton.style.display = 'inline';
+        } else {
+            deletePostButton.style.display = 'none';
+        }
 
-        // 섹션 전환
         postListSection.classList.remove('active');
         postDetailSection.classList.add('active');
     }
 
     // --- 새 게시물 작성 모달 열기 ---
     createPostButton.addEventListener('click', () => {
-        postModal.classList.add('active');
-        // 폼 초기화
+        if (!loggedInUser) {
+            alert('게시물 작성은 로그인 후 이용해주세요.');
+            openModal(loginModal); // 로그인 모달 열기
+            return;
+        }
+        openModal(postModal);
         postForm.reset();
         selectedFiles = [];
         filePreviewsContainer.innerHTML = '';
+        postAuthorInput.value = loggedInUser.username; // 로그인된 사용자 이름 자동 채움
     });
 
-    // --- 모달 닫기 ---
-    closeModalButton.addEventListener('click', () => {
-        postModal.classList.remove('active');
-        // 미리보기 URL 해제 (메모리 누수 방지)
-        selectedFiles.forEach(file => {
-            if (file.objectURL) {
-                URL.revokeObjectURL(file.objectURL);
-            }
-        });
-        selectedFiles = []; // 파일 선택 초기화
-        filePreviewsContainer.innerHTML = ''; // 미리보기 초기화
-    });
-
-    // 모달 외부 클릭 시 닫기
-    window.addEventListener('click', (event) => {
-        if (event.target === postModal) {
-            postModal.classList.remove('active');
-        }
-    });
 
     // --- 파일 선택 및 미리보기 ---
     postFilesInput.addEventListener('change', (event) => {
+        selectedFiles.forEach(file => { // 기존 미리보기 URL 해제
+            if (file.objectURL) URL.revokeObjectURL(file.objectURL);
+        });
         selectedFiles = []; // 기존 선택 파일 초기화
         filePreviewsContainer.innerHTML = ''; // 미리보기 초기화
 
@@ -184,21 +346,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             previewItem.appendChild(mediaElement);
 
-            // 파일 삭제 버튼
             const removeButton = document.createElement('span');
             removeButton.classList.add('remove-file');
             removeButton.textContent = 'x';
             removeButton.addEventListener('click', () => {
-                // 선택된 파일 목록에서 제거
                 selectedFiles = selectedFiles.filter(item => item.objectURL !== objectURL);
-                // 미리보기 DOM에서도 제거
                 previewItem.remove();
-                // URL 해제
                 URL.revokeObjectURL(objectURL);
-                // 파일 인풋 초기화 (선택된 파일 다시 반영)
-                // 실제 file input에는 직접 접근해서 파일을 제거하기 어려우므로,
-                // 제출 시 selectedFiles 배열만 사용하는 것이 더 견고합니다.
-                // 여기서는 UI만 업데이트한다고 가정합니다.
             });
             previewItem.appendChild(removeButton);
 
@@ -208,22 +362,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 게시물 폼 제출 처리 ---
     postForm.addEventListener('submit', (event) => {
-        event.preventDefault(); // 폼 기본 제출 방지
+        event.preventDefault();
 
         const title = postTitleInput.value.trim();
-        const author = postAuthorInput.value.trim();
+        const author = postAuthorInput.value.trim(); // 로그인된 사용자 이름으로 자동 채워짐
         const content = postContentInput.value.trim();
 
         if (!title || !author || !content) {
             alert('제목, 작성자, 내용을 모두 입력해주세요.');
             return;
         }
+        if (!loggedInUser || loggedInUser.username !== author) { // 보안을 위한 추가 확인 (클라이언트 측)
+            alert('로그인된 사용자와 작성자 정보가 일치하지 않습니다. 다시 로그인 해주세요.');
+            return;
+        }
 
-        // 새로운 게시물 ID 생성 (간단한 방법)
         const newPostId = currentPosts.length > 0 ? Math.max(...currentPosts.map(p => p.id)) + 1 : 1;
 
-        // 미디어 파일 데이터를 Base64로 변환 (localStorage 저장을 위해)
-        // 실제 운영에서는 Base64는 비효율적이므로 서버에 파일 자체를 업로드해야 합니다.
         const mediaPromises = selectedFiles.map(item => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -231,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     resolve({
                         name: item.name,
                         type: item.type,
-                        url: reader.result // Base64 인코딩된 URL
+                        url: reader.result
                     });
                 };
                 reader.readAsDataURL(item.file);
@@ -246,19 +401,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 content: content,
                 created_at: new Date(),
                 views: 0,
-                media_files: mediaFilesData // Base64 인코딩된 파일 데이터
+                media_files: mediaFilesData
             };
 
             currentPosts.push(newPost);
-            localStorage.setItem('posts', JSON.stringify(currentPosts)); // localStorage에 저장
+            localStorage.setItem('posts', JSON.stringify(currentPosts));
 
             alert('게시물이 성공적으로 작성되었습니다!');
-            postModal.classList.remove('active'); // 모달 닫기
+            closeModal(postModal); // 모달 닫기
             renderPostList(); // 목록 새로고침
-            // 미리보기 URL 해제
+
             selectedFiles.forEach(file => URL.revokeObjectURL(file.objectURL));
-            selectedFiles = []; // 선택된 파일 초기화
-            filePreviewsContainer.innerHTML = ''; // 미리보기 초기화
+            selectedFiles = [];
+            filePreviewsContainer.innerHTML = '';
 
         }).catch(error => {
             console.error("파일 처리 중 오류 발생:", error);
@@ -276,16 +431,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 게시물 삭제 버튼 ---
     deletePostButton.addEventListener('click', () => {
         const postIdToDelete = parseInt(deletePostButton.dataset.id);
+
+        // 삭제 권한 확인: 로그인된 사용자가 게시물 작성자인지
+        const postToDelete = currentPosts.find(post => post.id === postIdToDelete);
+        if (!loggedInUser || !postToDelete || postToDelete.author_name !== loggedInUser.username) {
+            alert('본인이 작성한 게시물만 삭제할 수 있습니다.');
+            return;
+        }
+
         if (confirm('정말로 이 게시물을 삭제하시겠습니까?')) {
             currentPosts = currentPosts.filter(post => post.id !== postIdToDelete);
             localStorage.setItem('posts', JSON.stringify(currentPosts));
             alert('게시물이 삭제되었습니다.');
             postDetailSection.classList.remove('active');
             postListSection.classList.add('active');
-            renderPostList(); // 목록 새로고침
+            renderPostList();
         }
     });
 
-    // 페이지 로드 시 게시물 로드
-    loadPosts();
+    // 페이지 로드 시 모든 데이터 로드
+    loadData();
 });
