@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>순수 JS 커뮤니티</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <h1>나만의 순수 JS 커뮤니티</h1>
+        <button id="createPostButton" class="create-button">새 게시물 작성</button>
+    </header>
+
+    <main class="main-content">
+        <section id="postListSection" class="post-list-section active">
+            <h2>게시물 목록</h2>
+            <ul id="postsContainer" class="posts-container">
+                </ul>
+        </section>
+
+        <section id="postDetailSection" class="post-detail-section">
+            <button id="backToListButton" class="back-button">목록으로</button>
+            <h2 id="detailTitle"></h2>
+            <p class="detail-meta">
+                작성자: <span id="detailAuthor"></span> | 조회수: <span id="detailViews"></span> | 작성일: <span id="detailDate"></span>
+            </p>
+            <div id="detailContent" class="detail-content"></div>
+            <div id="detailMedia" class="detail-media">
+                </div>
+            <button id="deletePostButton" class="delete-button">게시물 삭제</button>
+        </section>
+    </main>
+
+    <div id="postModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>새 게시물 작성</h2>
+            <form id="postForm" class="post-form">
+                <div class="form-group">
+                    <label for="postTitle">제목:</label>
+                    <input type="text" id="postTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="postAuthor">작성자:</label>
+                    <input type="text" id="postAuthor" required>
+                </div>
+                <div class="form-group">
+                    <label for="postContent">내용:</label>
+                    <textarea id="postContent" rows="10" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="postFiles">사진/GIF/동영상 첨부:</label>
+                    <input type="file" id="postFiles" multiple accept="image/*,video/*">
+                    <div id="filePreviews" class="file-previews">
+                        </div>
+                </div>
+                <button type="submit" class="submit-button">게시물 작성</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
